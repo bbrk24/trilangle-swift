@@ -1,4 +1,5 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-
-print("Hello, world!")
+let p = Program(text: """
+     ?
+    ! @
+    """)
+print(p)

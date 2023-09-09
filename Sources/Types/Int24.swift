@@ -41,11 +41,18 @@ extension Int24: ExpressibleByUnicodeScalarLiteral {
 extension Int24:
     CustomStringConvertible,
     LosslessStringConvertible,
-    Comparable,
     SignedNumeric,
     SignedInteger {}
 
 // MARK: Operators
+extension Int24: Comparable {
+    // WARNING: Swift lets you have an empty conformance here, but the default implementations for > and < reference
+    // each other, so at least one of them must be defined!
+    static func < (lhs: Int24, rhs: Int24) -> Bool {
+        lhs.value < rhs.value
+    }
+}
+
 extension Int24: AdditiveArithmetic {
     static func + (lhs: Int24, rhs: Int24) -> Int24 {
         // This addition can never overflow, and I'm doing my own bounds check

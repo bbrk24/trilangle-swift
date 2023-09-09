@@ -30,10 +30,11 @@ struct Program {
 
 extension Program: TextOutputStreamable {
     private var rows: some Sequence<ArraySlice<Int24>> {
-        sequence(state: 0) { (rowNum) in
+        sequence(state: 0) { rowNum in
             guard rowNum < self.sideLength else { return nil }
+            defer { rowNum += 1 }
             let offset = rowNum * (rowNum + 1) / 2
-            return self.storage[offset...(offset + rowNum + 1)]
+            return self.storage[offset...(offset + rowNum)]
         }
     }
 

@@ -18,22 +18,13 @@ enum Direction {
 }
 
 struct IP {
-    var row: Int {
-        didSet {
-            assert(row >= 0)
-        }
-    }
-    var column: Int {
-        didSet {
-            assert(column >= 0)
-        }
-    }
+    var row: Int
+    var column: Int
     var direction: Direction
 
     mutating func advance(sideLength: Int) {
         precondition(sideLength > 0)
-        // Do this to prevent undue underflow checks on the subtraction below.
-        assume(row >= 0 && column >= 0)
+        assert(row >= 0 && column >= 0)
 
         switch direction {
         case .west:
