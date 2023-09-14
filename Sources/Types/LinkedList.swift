@@ -73,3 +73,9 @@ enum LinkedList<T> {
         }
     }
 }
+
+extension LinkedList: CustomDebugStringConvertible {
+    var debugDescription: String {
+        nodes.map(\.value).debugDescription
+    }
+}

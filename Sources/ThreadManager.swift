@@ -21,6 +21,7 @@ struct ThreadManager {
     mutating func tick() {
         var removals: [LinkedList<ThreadStorage>.Node] = []
         var additions: [ThreadStorage] = []
+        var waiting: [Location: LinkedList<ThreadStorage>.Node] = [:]
 
         for node in threads.nodes {
             switch tick(thread: &node.value) {
@@ -29,7 +30,37 @@ struct ThreadManager {
             case .add(let newThread):
                 additions.append(newThread)
             case .keep:
-                break
+                if node.value.status == .waiting {
+                    if let match = waiting[node.value.ip.location] {
+                        removals.append(node)
+                        removals.append(match)
+                        waiting.removeValue(forKey: node.value.ip.location)
+
+                        var stack: [Int24]
+
+                        let matchDepth = Int(match.value.stack.removeLast())
+                        if matchDepth < 0 {
+                            stack = match.value.stack
+                        } else {
+                            stack = match.value.stack.suffix(matchDepth)
+                        }
+
+                        let ownDepth = Int(node.value.stack.removeLast())
+                        if ownDepth < 0 {
+                            stack += node.value.stack
+                        } else {
+                            stack += node.value.stack.suffix(ownDepth)
+                        }
+
+                        additions.append(.init(
+                            stack: stack,
+                            ip: IP(location: node.value.ip.location, direction: node.value.ip.direction.flattenNS()),
+                            status: .active
+                        ))
+                    } else {
+                        waiting[node.value.ip.location] = node
+                    }
+                }
             case .exit:
                 threads = .empty
                 return
@@ -59,6 +90,9 @@ struct ThreadManager {
             fatalError("Unrecognized instruction")
         }
 
+        // https://forums.swift.org/t/bool-is-not-optional/67289
+        let goLeft = { thread.stack.last.map { $0 < .zero } ?? true }
+
         switch instruction {    
         case .nop:
             break
@@ -67,18 +101,38 @@ struct ThreadManager {
         case .skip:
             thread.status = .skipping
             thread.ip.advance(sideLength: program.sideLength)
-        case .add: break
-        case .subtract: break
-        case .multiply: break
-        case .divide: break
-        case .modulo: break
-        case .increment: break
-        case .decrement: break
-        case .bitAnd: break
-        case .bitOr: break
-        case .bitXor: break
-        case .bitNot: break
-        case .exponential: break
+        case .add:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] += last
+        case .subtract: 
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] -= last
+        case .multiply:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] *= last
+        case .divide:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] /= last
+        case .modulo:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] %= last
+        case .increment:
+            thread.stack[thread.stack.count - 1] += 1
+        case .decrement: 
+            thread.stack[thread.stack.count - 1] -= 1
+        case .bitAnd:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] &= last
+        case .bitOr:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] |= last
+        case .bitXor:
+            let last = thread.stack.removeLast()
+            thread.stack[thread.stack.count - 1] ^= last
+        case .bitNot:
+            thread.stack[thread.stack.count - 1] = ~thread.stack[thread.stack.count - 1]
+        case .exponential:
+            thread.stack[thread.stack.count - 1] = 1 << thread.stack[thread.stack.count - 1]
         case .pushInt:
             thread.ip.advance(sideLength: program.sideLength)
             let operand = program[thread.ip]
@@ -96,28 +150,41 @@ struct ThreadManager {
             thread.status = .skipping
         case .pop:
             _ = thread.stack.popLast()
-        case .index: break
-        case .duplicate: break
-        case .twoDupe: break
-        case .swap: break
+        case .index:
+            let index = thread.stack.removeLast()
+            thread.stack.append(thread.stack[thread.stack.count - Int(index) - 1])
+        case .duplicate:
+            thread.stack.append(thread.stack.last!)
+        case .twoDupe:
+            thread.stack.append(contentsOf: thread.stack.suffix(2))
+        case .swap:
+            thread.stack.swapAt(thread.stack.count - 1, thread.stack.count - 2)
         case .getChar:
             thread.stack.append(IO.getCharacter())
-        case .putChar: break
+        case .putChar:
+            print(Unicode.Scalar(UInt32(thread.stack.last!))!, terminator: "")
         case .getInt:
             thread.stack.append(IO.getNumber())
-        case .putInt: break
+        case .putInt:
+            print(thread.stack.last!)
         case .random:
             thread.stack.append(.random(in: .min ... .max))
         case .getTime:
             thread.stack.append(DateTime.getScaledTime())
         case .getDate:
             thread.stack.append(DateTime.getDateNumber())
-        case .branchNorthwest: break
-        case .branchNortheast: break
-        case .branchEast: break
-        case .branchSoutheast: break
-        case .branchSouthwest: break
-        case .branchWest: break
+        case .branchNorthwest:
+            thread.ip.direction.branch(.northwest, goLeft)
+        case .branchNortheast:
+            thread.ip.direction.branch(.northeast, goLeft)
+        case .branchEast:
+            thread.ip.direction.branch(.east, goLeft)
+        case .branchSoutheast:
+            thread.ip.direction.branch(.southeast, goLeft)
+        case .branchSouthwest:
+            thread.ip.direction.branch(.southwest, goLeft)
+        case .branchWest:
+            thread.ip.direction.branch(.west, goLeft)
         case .threadWest:
             switch thread.ip.direction {
             case .southwest, .northwest:
@@ -158,10 +225,14 @@ struct ThreadManager {
 
                 return .add(newThread)
             }
-        case .mirrorHorizontal: break
-        case .mirrorVertical: break
-        case .mirrorForward: break
-        case .mirrorBack: break
+        case .mirrorHorizontal:
+            thread.ip.direction.reflect(.horizontal)
+        case .mirrorVertical:
+            thread.ip.direction.reflect(.vertical)
+        case .mirrorForward:
+            thread.ip.direction.reflect(.forwardSlash)
+        case .mirrorBack:
+            thread.ip.direction.reflect(.backslash)
         }
 
         thread.ip.advance(sideLength: program.sideLength)

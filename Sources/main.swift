@@ -1,6 +1,5 @@
-let p = Program(text: """
-     ?
-    ! @
-    """)
-var interpreter = ThreadManager(program: p)
+import Foundation
+let programText = try! String(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
+let program = Program(text: programText)
+var interpreter = ThreadManager(program: program)
 interpreter.run()

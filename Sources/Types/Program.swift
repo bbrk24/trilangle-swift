@@ -15,8 +15,8 @@ final class Program {
         self.sideLength = Int(ceil(underestimatedSideLength))
 
         // Pad it with NOPs
-        let padding = self.storage.count - self.sideLength * (self.sideLength + 1) / 2
-        self.storage.append(contentsOf: repeatElement(".", count: padding))
+        let padding = self.sideLength * (self.sideLength + 1) / 2 - self.storage.count 
+        self.storage.append(contentsOf: repeatElement(Instruction.nop.rawValue, count: padding))
     }
 
     subscript(row: Int, column: Int) -> Int24 {

@@ -1,26 +1,52 @@
-enum Direction {
-    case southwest, west, northwest, northeast, east, southeast
+enum Direction: Int {
+    case northeast = 0, east, southeast, southwest, west, northwest
 
-    var nsToggled: Direction {
+    static let ne = Direction.northeast
+    static let e = Direction.east
+    static let se = Direction.southeast
+    static let sw = Direction.southwest
+    static let w = Direction.west
+    static let nw = Direction.northwest
+
+    func flattenNS() -> Direction {
         switch self {
-        case .southwest:
-            return .northwest
-        case .northwest:
-            return .southwest
-        case .northeast:
-            return .southeast
-        case .southeast:
-            return .northeast
-        case .west, .east:
-            return self
+        case .northeast, .east, .southeast:
+            return .east
+        case .southwest, .west, .northwest:
+            return .west
         }
     }
 }
 
-struct IP {
+struct Location: Hashable {
     var row: Int
     var column: Int
+}
+
+struct IP {
+    var location: Location
     var direction: Direction
+
+    var row: Int {
+        get { location.row }
+        set { location.row = newValue }
+    }
+
+    var column: Int {
+        get { location.column }
+        set { location.column = newValue }
+    }
+
+    init(location: Location, direction: Direction) {
+        self.location = location
+        self.direction = direction
+    }
+
+    init(row: Int, column: Int, direction: Direction) {
+        assert(row >= 0 && column >= 0)
+        self.location = .init(row: row, column: column)
+        self.direction = direction
+    }
 
     mutating func advance(sideLength: Int) {
         precondition(sideLength > 0)
@@ -29,10 +55,9 @@ struct IP {
         switch direction {
         case .west:
             if column == 0 {
-                if row == 0 {
-                    row = sideLength - 1
-                } else {
-                    row -= 1
+                row += 1
+                if row >= sideLength {
+                    row = 0
                 }
                 column = row
             } else {
@@ -41,9 +66,10 @@ struct IP {
         case .east:
             if column == row {
                 column = 0
-                row += 1
-                if row >= sideLength {
-                    row = 0
+                if row == 0 {
+                    row = sideLength - 1
+                } else {
+                    row -= 1
                 }
             } else {
                 column += 1
@@ -89,7 +115,7 @@ struct IP {
                 if row == sideLength &- 1 {
                     column = sideLength &- 1
                 } else {
-                    column = sideLength &- row &- 1
+                    column = sideLength &- row &- 2
                     row = sideLength &- 1
                 }
             } else {

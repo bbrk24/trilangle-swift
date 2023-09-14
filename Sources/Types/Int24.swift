@@ -13,6 +13,11 @@ struct Int24: Hashable {
     private static func boundsCheck(_ value: Int32) -> Bool {
         value >= Int24.min.value && value <= Int24.max.value
     }
+
+    // For some reason, the default implementation by Strideable suppresses the automatic one by Equatable
+    static func == (lhs: Int24, rhs: Int24) -> Bool {
+        lhs.value == rhs.value
+    }
 }
 
 // MARK: Literals
