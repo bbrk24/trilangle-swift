@@ -99,3 +99,9 @@ struct IP {
         }
     }
 }
+
+extension Program {
+    subscript(ip: IP) -> Int24 {
+        self[ip.row, ip.column]
+    }
+}

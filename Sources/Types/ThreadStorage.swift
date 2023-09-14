@@ -1,8 +1,9 @@
-struct ThreadStorage {
-    private(set) var stack: [Int24]
-    private var ip: IP
+enum ThreadStatus: Equatable {
+    case active, skipping, waiting
+}
 
-    var location: (row: Int, column: Int) {
-        (ip.row, ip.column)
-    }
+struct ThreadStorage {
+    var stack: [Int24]
+    var ip: IP
+    var status: ThreadStatus
 }

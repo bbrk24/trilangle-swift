@@ -2,4 +2,5 @@ let p = Program(text: """
      ?
     ! @
     """)
-print(p)
+var interpreter = ThreadManager(program: p)
+interpreter.run()
