@@ -143,21 +143,22 @@ extension Int24: BinaryInteger {
 
 extension Int24: FixedWidthInteger {
     var byteSwapped: Int24 {
-        let lowByte = value & 0xff
-        let midByte = (value & 0xff00) >> 8
-        let highByte = (value & 0x00ff_0000) >> 16
+        let lowByte  =  value & 0x0000ff
+        let midByte  = (value & 0x00ff00) >> 8
+        let highByte = (value & 0xff0000) >> 16
+
         let newValue = ((lowByte << 24) | (midByte << 16) | (highByte << 8)) >> 8
         return .init(unchecked: newValue)
     }
 
     var leadingZeroBitCount: Int {
-        value.signum() < 0
+        value < 0
             ? 0
             : value.leadingZeroBitCount - 8
     }
 
     var nonzeroBitCount: Int {
-        value.signum() < 0
+        value < 0
             ? value.nonzeroBitCount - 8
             : value.nonzeroBitCount
     }
@@ -200,5 +201,32 @@ extension Int24: FixedWidthInteger {
         let (quotient, remainder) = value.dividingFullWidth((high32, low32))
         assert(Int24.boundsCheck(quotient) && Int24.boundsCheck(remainder))
         return (.init(unchecked: quotient), .init(unchecked: remainder))
+    }
+
+    static func &>> (lhs: Int24, rhs: Int24) -> Int24 {
+        .init(unchecked: lhs.value &>> (rhs.value % 24))
+    }
+    
+    static func &>>= (lhs: inout Int24, rhs: some BinaryInteger) {
+        lhs.value &>>= (rhs % 24)
+    }
+
+    static func &<< (lhs: Int24, rhs: Int24) -> Int24 {
+        let value = lhs.value << (rhs.value % 24)
+        if rhs.value < 0 || !boundsCheck(value) {
+            return 0
+        }
+        return .init(unchecked: value)
+    }
+
+    static func &<<= (lhs: inout Int24, rhs: some BinaryInteger) {
+        lhs.value <<= (rhs % 24)
+        if rhs < 0 || !boundsCheck(lhs.value) {
+            lhs = 0
+        }
+    }
+
+    static prefix func ~ (x: Int24) -> Int24 {
+        .init(unchecked: ~x.value)
     }
 }

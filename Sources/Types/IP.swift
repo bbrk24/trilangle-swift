@@ -70,12 +70,32 @@ struct IP {
             } else {
                 row -= 1
             }
-        case .northwest:
-            // TODO
-            break
         case .southeast:
-            // TODO
-            break
+            // reasoning about this case hurts my head
+            // copy-pasted from the C++ code without vetting it
+            column &+= 1
+            row &+= 1
+            if row == sideLength {
+                if column < sideLength {
+                    row = sideLength &- column &- 1
+                } else {
+                    row = sideLength &- 1
+                }
+                column = 0
+            }
+        case .northwest:
+            // same note as above
+            if column == 0 {
+                if row == sideLength &- 1 {
+                    column = sideLength &- 1
+                } else {
+                    column = sideLength &- row &- 1
+                    row = sideLength &- 1
+                }
+            } else {
+                row &-= 1
+                column &-= 1
+            }
         }
     }
 }

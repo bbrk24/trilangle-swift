@@ -1,6 +1,6 @@
 import CStdLib
 
-struct Program {
+final class Program {
     private var storage: [Int24]
     private(set) var sideLength: Int
 
