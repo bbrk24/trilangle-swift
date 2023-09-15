@@ -1,22 +1,39 @@
 struct ThreadManager {
     var program: Program
-    var threads: LinkedList
+    var threads = LinkedList()
 
     init(program: Program) {
         self.program = program
-        self.threads = .init()
-        self.threads.insert(.init(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active))
     }
 
     mutating func run() {
-        repeat {
-            tick()
-        } while !threads.isEmpty
+        @_eagerMove var firstThread = ThreadStorage(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active)
+        if !(program.contains(Instruction.threadEast.rawValue) || program.contains(Instruction.threadWest.rawValue)) {
+            loop: while true {
+                switch tick(thread: &firstThread) {
+                case .exit:
+                    break loop
+                case .keep:
+                    assert(firstThread.status != .waiting)
+                default:
+                    preconditionFailure()
+                }
+            }
+        } else {
+            self.threads.insert(firstThread)
+            repeat {
+                tick()
+            } while !threads.isEmpty
+        }
         threads.deallocate()
     }
 
-    mutating func tick() {
-        // TODO (performance): These have an obscenely strong effect on performance even when they're not used.
+    private mutating func tick() {
+        // These three variables have such a massive impact on performance I've special-cased for when it's statically
+        // known they aren't needed. It doesn't even call `tick()` in that case.
+        // Removing that special case makes the code 2-3x slower. perf says a significant fraction of the time is spent
+        // in swift_release, which is almost certainly due to RC/CoW. The rest of it is likely just the difference
+        // between iterating over a linked list vs holding the one value on the stack.
         var removals: [LinkedList.Node] = Array()
         var additions: [ThreadStorage] = Array()
         var waiting: [Location: LinkedList.Node] = Dictionary()

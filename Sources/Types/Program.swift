@@ -26,6 +26,10 @@ final class Program {
             return storage[idx]
         }
     }
+
+    func contains(_ element: Int24) -> Bool {
+        storage.contains(element)
+    }
 }
 
 extension Program: TextOutputStreamable {
