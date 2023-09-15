@@ -1,27 +1,24 @@
 struct ThreadManager {
     var program: Program
-    var threads: LinkedList<ThreadStorage>
+    var threads: LinkedList
 
     init(program: Program) {
         self.program = program
-        self.threads = .empty
-        self.threads.insert(.init(stack: [], ip: IP(row: 0, column: 0, direction: .southwest), status: .active))
+        self.threads = .init()
+        self.threads.insert(.init(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active))
     }
 
     mutating func run() {
-        while true {
+        repeat {
             tick()
-
-            if case .empty = threads {
-                return
-            }
-        }
+        } while !threads.isEmpty
+        threads.deallocate()
     }
 
     mutating func tick() {
-        var removals: [LinkedList<ThreadStorage>.Node] = []
-        var additions: [ThreadStorage] = []
-        var waiting: [Location: LinkedList<ThreadStorage>.Node] = [:]
+        var removals: [LinkedList.Node] = Array()
+        var additions: [ThreadStorage] = Array()
+        var waiting: [Location: LinkedList.Node] = Dictionary()
 
         for node in threads.nodes {
             switch tick(thread: &node.value) {
@@ -62,7 +59,7 @@ struct ThreadManager {
                     }
                 }
             case .exit:
-                threads = .empty
+                threads.deallocate()
                 return
             }
         }

@@ -1,59 +1,94 @@
-enum LinkedList<T> {
-    case empty
-    case notEmpty(head: Node, tail: Node)
+import CStdLib
+
+struct LinkedList {
+    private var storage: UnsafeMutableBufferPointer<Element>
+    private var unusedIndices: [Int] = Array()
+    private var head = -1
+    private var tail = -1
+
+    init() {
+        let ptr = calloc(4, MemoryLayout<Element>.stride).unsafelyUnwrapped
+        storage = .init(start: ptr.bindMemory(to: Element.self, capacity: 4), count: 4)
+        storage.initialize(repeating: Element(prev: -1, next: -1))
+        unusedIndices = [3, 2, 1, 0]
+    }
 
     var nodes: Nodes {
-        switch self {
-        case .empty:
-            return .init(nil)
-        case .notEmpty(let head, tail: _):
-            return .init(head)
+        Nodes(head == -1 ? nil : Node(index: head, storage: storage))
+    }
+
+    var isEmpty: Bool {
+        head == -1
+    }
+
+    mutating func deallocate() {
+        storage.deinitialize()
+        free(storage.baseAddress)
+        head = -1
+        tail = -1
+        unusedIndices.removeAll()
+        storage = .init(start: nil, count: 0)
+    }
+
+    mutating func insert(_ value: __owned ThreadStorage) {
+        if unusedIndices.isEmpty {
+            let oldCount = storage.count
+            let newPtr = realloc(storage.baseAddress, 2 * oldCount * MemoryLayout<Element>.stride).unsafelyUnwrapped
+            (newPtr + oldCount).bindMemory(to: Element.self, capacity: oldCount)
+
+            storage = .init(
+                start: newPtr.assumingMemoryBound(to: Element.self),
+                count: 2 * oldCount
+            )
+            storage[oldCount...].initialize(repeating: Element(prev: -1, next: -1))
+            unusedIndices = Array(oldCount..<storage.count)
+        }
+        let location = unusedIndices.removeLast()
+
+        storage[location] = Element(prev: tail, next: -1, value: value)
+        if tail != -1 {
+            storage[tail].next = location
+        }
+        tail = location
+        if head == -1 {
+            head = location
         }
     }
 
-    mutating func insert(_ value: T) {
-        let newNode = Node(value)
-        switch self {
-        case .empty:
-            self = .notEmpty(head: newNode, tail: newNode)
-        case .notEmpty(let head, let tail):
-            tail.next = newNode
-            newNode.prev = tail
-            self = .notEmpty(head: head, tail: newNode)
+    mutating func remove(index: Int) {
+        let el = storage[index]
+        storage[el.prev].next = el.next
+        storage[el.next].prev = el.prev
+
+        if index == head {
+            head = el.next
         }
+
+        if index == tail {
+            tail = el.prev
+        }
+
+        unusedIndices.append(index)
     }
 
     mutating func remove(node: Node) {
-        guard case .notEmpty(let head, let tail) = self else {
-            preconditionFailure()
-        }
+        remove(index: node.index)
+    }
 
-        switch (node.prev, node.next) {
-        case (nil, nil):
-            precondition(head === tail && node === head)
-            self = .empty
-        case (let prev?, let next?):
-            prev.next = next
-            next.prev = prev
-        case (nil, let next?):
-            precondition(node === head)
-            next.prev = nil
-            self = .notEmpty(head: next, tail: tail)
-        case (let prev?, nil):
-            precondition(node === tail)
-            prev.next = nil
-            self = .notEmpty(head: head, tail: prev)
+    struct Node {
+        fileprivate var index: Int
+        fileprivate var storage: UnsafeMutableBufferPointer<Element>
+
+        var value: ThreadStorage {
+            get { storage[index].value }
+            nonmutating _modify { yield &storage[index].value }
         }
     }
 
-    final class Node {
-        fileprivate var prev: Node?
-        fileprivate var next: Node?
-        var value: T
-
-        init(_ value: T) {
-            self.value = value
-        }
+    struct Element {
+        var prev: Int
+        var next: Int
+        var value: ThreadStorage!
     }
 
     struct Nodes: Sequence, IteratorProtocol {
@@ -63,12 +98,15 @@ enum LinkedList<T> {
             self.curr = node
         }
 
-        var underestimatedCount: Int {
-            curr == nil ? 0 : 1
-        }
-
         mutating func next() -> Node? {
-            defer { curr = curr?.next }
+            defer {
+                if let curr,
+                   curr.storage[curr.index].next != -1 {
+                    self.curr!.index = curr.storage[curr.index].next
+                } else {
+                    curr = nil
+                }
+            }
             return curr
         }
     }
