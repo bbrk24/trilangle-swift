@@ -7,7 +7,7 @@ private let mirrorMatrix: [[Direction]] = [
 /* NE */ [.northwest, .southeast, .northeast, .west     ],
 /* E  */ [.west,      .east,      .northwest, .southwest],
 /* SE */ [.southwest, .northeast, .west,      .southeast],
-/* SW */ [.southeast, .southeast, .southwest, .east     ],
+/* SW */ [.southeast, .northwest, .southwest, .east     ],
 /* W  */ [.east,      .west,      .southeast, .northeast],
 /* NW */ [.northeast, .southwest, .east,      .northwest],
 ]
