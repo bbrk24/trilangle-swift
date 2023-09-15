@@ -8,3 +8,7 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 .vscode/
+*.trg
+perf.data
+perf.data.old
+out.perf

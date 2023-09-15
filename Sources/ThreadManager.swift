@@ -16,6 +16,7 @@ struct ThreadManager {
     }
 
     mutating func tick() {
+        // TODO (performance): These have an obscenely strong effect on performance even when they're not used.
         var removals: [LinkedList.Node] = Array()
         var additions: [ThreadStorage] = Array()
         var waiting: [Location: LinkedList.Node] = Dictionary()
@@ -27,7 +28,7 @@ struct ThreadManager {
             case .add(let newThread):
                 additions.append(newThread)
             case .keep:
-                if node.value.status == .waiting {
+                if _slowPath(node.value.status == .waiting) {
                     if let match = waiting[node.value.ip.location] {
                         removals.append(node)
                         removals.append(match)
@@ -49,9 +50,13 @@ struct ThreadManager {
                             stack += node.value.stack.suffix(ownDepth)
                         }
 
+                        var newThreadIP = node.value.ip
+                        newThreadIP.direction = newThreadIP.direction.flattenNS()
+                        newThreadIP.advance(sideLength: program.sideLength)
+
                         additions.append(.init(
                             stack: stack,
-                            ip: IP(location: node.value.ip.location, direction: node.value.ip.direction.flattenNS()),
+                            ip: newThreadIP,
                             status: .active
                         ))
                     } else {
@@ -90,7 +95,7 @@ struct ThreadManager {
         // https://forums.swift.org/t/bool-is-not-optional/67289
         let goLeft = { thread.stack.last.map { $0 < .zero } ?? true }
 
-        switch instruction {    
+        switch instruction {
         case .nop:
             break
         case .exit:

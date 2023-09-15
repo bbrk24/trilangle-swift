@@ -57,8 +57,12 @@ struct LinkedList {
 
     mutating func remove(index: Int) {
         let el = storage[index]
-        storage[el.prev].next = el.next
-        storage[el.next].prev = el.prev
+        if el.prev != -1 {
+            storage[el.prev].next = el.next
+        }
+        if el.next != -1 {
+            storage[el.next].prev = el.prev
+        }
 
         if index == head {
             head = el.next
@@ -100,6 +104,7 @@ struct LinkedList {
 
         mutating func next() -> Node? {
             defer {
+                _onFastPath()
                 if let curr,
                    curr.storage[curr.index].next != -1 {
                     self.curr!.index = curr.storage[curr.index].next
