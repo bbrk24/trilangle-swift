@@ -1,4 +1,4 @@
-import CStdLib
+import Foundation
 
 final class Program {
     private var storage: [Int24]
@@ -34,7 +34,7 @@ final class Program {
 
 extension Program: TextOutputStreamable {
     private var rows: some Sequence<ArraySlice<Int24>> {
-        sequence(state: 0) { rowNum in
+        sequence(state: 0) { [self] (rowNum) in
             guard rowNum < self.sideLength else { return nil }
             defer { rowNum += 1 }
             let offset = rowNum * (rowNum + 1) / 2

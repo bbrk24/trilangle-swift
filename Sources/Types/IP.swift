@@ -61,18 +61,18 @@ struct IP {
                 }
                 column = row
             } else {
-                column -= 1
+                column &-= 1
             }
         case .east:
             if column == row {
                 column = 0
                 if row == 0 {
-                    row = sideLength - 1
+                    row = sideLength &- 1
                 } else {
-                    row -= 1
+                    row &-= 1
                 }
             } else {
-                column += 1
+                column &+= 1
             }
         case .southwest:
             // Moving SW is usually just incrementing the row number...
@@ -87,14 +87,14 @@ struct IP {
             }
         case .northeast:
             if row == column {
-                row = sideLength - 1
+                row = sideLength &- 1
                 if column == 0 {
-                    column = sideLength - 1
+                    column = row
                 } else {
-                    column -= 1
+                    column &-= 1
                 }
             } else {
-                row -= 1
+                row &-= 1
             }
         case .southeast:
             // reasoning about this case hurts my head

@@ -1,6 +1,6 @@
-import CStdLib
+import Foundation
 
-struct LinkedList {
+struct LinkedList: ~Copyable {
     private var storage: UnsafeMutableBufferPointer<Element>
     private var unusedIndices: [Int] = Array()
     private var head = -1
@@ -21,16 +21,18 @@ struct LinkedList {
         head == -1
     }
 
-    mutating func deallocate() {
+    deinit {
         storage.deinitialize()
         free(storage.baseAddress)
-        head = -1
-        tail = -1
-        unusedIndices.removeAll()
-        storage = .init(start: nil, count: 0)
     }
 
-    mutating func insert(_ value: __owned ThreadStorage) {
+    mutating func removeAll() {
+        head = -1
+        tail = -1
+        unusedIndices = Array((0..<storage.count).reversed())
+    }
+
+    mutating func insert(_ value: consuming ThreadStorage) {
         if unusedIndices.isEmpty {
             let oldCount = storage.count
             let newPtr = realloc(storage.baseAddress, 2 * oldCount * MemoryLayout<Element>.stride).unsafelyUnwrapped
@@ -41,7 +43,7 @@ struct LinkedList {
                 count: 2 * oldCount
             )
             storage[oldCount...].initialize(repeating: Element(prev: -1, next: -1))
-            unusedIndices = Array(oldCount..<storage.count)
+            unusedIndices = Array((oldCount..<storage.count).reversed())
         }
         let location = unusedIndices.removeLast()
 
@@ -85,7 +87,7 @@ struct LinkedList {
 
         var value: ThreadStorage {
             get { storage[index].value }
-            nonmutating _modify { yield &storage[index].value }
+            borrowing _modify { yield &storage[index].value }
         }
     }
 
@@ -117,7 +119,7 @@ struct LinkedList {
     }
 }
 
-extension LinkedList: CustomDebugStringConvertible {
+extension LinkedList /* : CustomDebugStringConvertible */ {
     var debugDescription: String {
         nodes.map(\.value).debugDescription
     }

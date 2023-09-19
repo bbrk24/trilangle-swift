@@ -1,13 +1,13 @@
-struct ThreadManager {
+struct ThreadManager: ~Copyable {
     var program: Program
     var threads = LinkedList()
 
-    init(program: Program) {
+    init(program: consuming Program) {
         self.program = program
     }
 
     mutating func run() {
-        @_eagerMove var firstThread = ThreadStorage(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active)
+        var firstThread = ThreadStorage(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active)
         if !(program.contains(Instruction.threadEast.rawValue) || program.contains(Instruction.threadWest.rawValue)) {
             loop: while true {
                 switch tick(thread: &firstThread) {
@@ -25,7 +25,6 @@ struct ThreadManager {
                 tick()
             } while !threads.isEmpty
         }
-        threads.deallocate()
     }
 
     private mutating func tick() {
@@ -81,7 +80,7 @@ struct ThreadManager {
                     }
                 }
             case .exit:
-                threads.deallocate()
+                threads.removeAll()
                 return
             }
         }
