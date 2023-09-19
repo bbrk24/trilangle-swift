@@ -2,13 +2,17 @@ struct ThreadManager: ~Copyable {
     var program: Program
     var threads = LinkedList()
 
+    private var hasThreads: Bool {
+        program.contains(Instruction.threadEast.i24) || program.contains(Instruction.threadWest.i24)
+    }
+
     init(program: consuming Program) {
         self.program = program
     }
 
     mutating func run() {
         var firstThread = ThreadStorage(stack: Array(), ip: IP(row: 0, column: 0, direction: .southwest), status: .active)
-        if !(program.contains(Instruction.threadEast.rawValue) || program.contains(Instruction.threadWest.rawValue)) {
+        if !hasThreads {
             loop: while true {
                 switch tick(thread: &firstThread) {
                 case .exit:
@@ -104,7 +108,7 @@ struct ThreadManager: ~Copyable {
             break
         }
 
-        guard let instruction = Instruction(rawValue: program[thread.ip]) else {
+        guard let instruction = Instruction(i24: program[thread.ip]) else {
             fatalError("Unrecognized instruction")
         }
 
@@ -135,9 +139,9 @@ struct ThreadManager: ~Copyable {
             let last = thread.stack.removeLast()
             thread.stack[thread.stack.count - 1] %= last
         case .increment:
-            thread.stack[thread.stack.count - 1] += 1
+            thread.stack[thread.stack.count - 1] &+= 1
         case .decrement: 
-            thread.stack[thread.stack.count - 1] -= 1
+            thread.stack[thread.stack.count - 1] &-= 1
         case .bitAnd:
             let last = thread.stack.removeLast()
             thread.stack[thread.stack.count - 1] &= last
@@ -153,8 +157,7 @@ struct ThreadManager: ~Copyable {
             thread.stack[thread.stack.count - 1] = 1 << thread.stack[thread.stack.count - 1]
         case .pushInt:
             thread.ip.advance(sideLength: program.sideLength)
-            let operand = program[thread.ip]
-            let scalar = Unicode.Scalar(UInt32(operand))!
+            let scalar = program[thread.ip].scalar!
             guard let value = Character(scalar).wholeNumberValue,
                   let i24Value = Int24(exactly: value) else {
                 fatalError("Operand of push instruction (\(scalar)) is not a number")
@@ -180,7 +183,7 @@ struct ThreadManager: ~Copyable {
         case .getChar:
             thread.stack.append(IO.getCharacter())
         case .putChar:
-            print(Unicode.Scalar(UInt32(thread.stack.last!))!, terminator: "")
+            print(thread.stack.last!.scalar!, terminator: "")
         case .getInt:
             thread.stack.append(IO.getNumber())
         case .putInt:

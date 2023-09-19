@@ -1,6 +1,10 @@
 struct Int24: Hashable {
     private var value: Int32
 
+    var scalar: Unicode.Scalar? {
+        .init(Int(value))
+    }
+
     static let min = Int24(unchecked: -0x0080_0000)
     static let max = Int24(unchecked: +0x007f_ffff)
     static let bitWidth = 24

@@ -16,7 +16,7 @@ final class Program {
 
         // Pad it with NOPs
         let padding = self.sideLength * (self.sideLength + 1) / 2 - self.storage.count 
-        self.storage.append(contentsOf: repeatElement(Instruction.nop.rawValue, count: padding))
+        self.storage.append(contentsOf: repeatElement(Instruction.nop.i24, count: padding))
     }
 
     subscript(row: Int, column: Int) -> Int24 {

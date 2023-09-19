@@ -1,4 +1,4 @@
-enum Instruction: Int24 {
+@objc enum Instruction: Unicode.Scalar {
     case nop = "."
     case exit = "@"
     case skip = "#"
@@ -47,4 +47,19 @@ enum Instruction: Int24 {
     case mirrorVertical = "|"
     case mirrorForward = "/"
     case mirrorBack = "\\"
+}
+
+extension Instruction {
+    init?(i24: Int24) {
+        if let scalar = i24.scalar,
+           let _self = Instruction(rawValue: scalar) {
+            self = _self
+        } else {
+            return nil
+        }
+    }
+
+    var i24: Int24 {
+        Int24(scalar: rawValue)
+    }
 }
